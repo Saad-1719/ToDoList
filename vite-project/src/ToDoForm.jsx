@@ -1,75 +1,108 @@
-import React, { useContext } from "react";
-import { ToDoContext } from "./AddToDo";
+import React, { useEffect, useState } from "react";
+import {
+	addTodo,
+	deleteTodo,
+	getAllTodos,
+	updateTodo,
+} from "./lib/todo.controller";
 
 function ToDoForm() {
-  const { state, dispatch } = useContext(ToDoContext);
+	const [allTodos, setAllTodos] = useState([]);
+	const [inputValue, setInputValue] = useState("");
+	const [updateNote, setUpdatednote] = useState("");
+	const [editingNoteId, setEditingNoteId] = useState(null);
 
-  const handleInputChange = (e) => {
-    dispatch({ type: "SetInputValue", payload: e.target.value });
-  };
+	const handleAdd = async () => {
+		await addTodo(inputValue);
+		await loadAllTodos();
+		setInputValue("");
+	};
 
-  const handleEditingChange = (e) => {
-    dispatch({ type: "SetEditingValue", payload: e.target.value });
-  };
+	const handleRemove = async (id) => {
+		await deleteTodo(id);
+		await loadAllTodos();
+	};
 
-  const handleAdd = () => {
-    if (state.inputValue.trim() !== "") {
-      dispatch({ type: "AddToDo", payload: state.inputValue });
-    }
-  };
+	async function loadAllTodos() {
+		const todos = await getAllTodos();
+		if (todos) {
+			setAllTodos(todos);
+		}
+	}
+	async function handleEdit(id, body) {
+		setEditingNoteId(id);
+		setUpdatednote(body);
+	}
 
-  const handleRemove = (id) => {
-    dispatch({ type: "RemoveToDo", payload: id });
-  };
+	const handleUpdate = async (id) => {
+		await updateTodo(id, updateNote);
+		await loadAllTodos();
+		setEditingNoteId(null);
+		setUpdatednote("");
+	};
 
-  const handleEdit = (id) => {
-    dispatch({ type: "SetEditingId", payload: id });
-    const todo = state.todos.find((todo) => todo.id === id);
-    dispatch({ type: "SetEditingValue", payload: todo.text });
-  };
+	useEffect(() => {
+		loadAllTodos();
+	}, []);
 
-  const handleEditSubmit = (id) => {
-    dispatch({ type: "EditToDo", payload: { id, text: state.editingValue } });
-  };
+	return (
+		<div className="todo-container">
+			<h1>To-Do Guru</h1>
+			<input
+				type="text"
+				value={inputValue}
+				onChange={(e) => setInputValue(e.target.value)}
+				placeholder="Enter your todo"
+				className="todo-input"
+			/>
+			<button onClick={handleAdd} className="todo-button">
+				Submit
+			</button>
 
-  return (
-      <div className="todo-container">
-          <h1>To-Do Guru</h1>
-      <input
-        type="text"
-        value={state.inputValue}
-        onChange={handleInputChange}
-        placeholder="Enter your todo"
-        className="todo-input"
-      />
-      <button onClick={handleAdd} className="todo-button">Submit</button>
+			<h2 className="todo-title">Notes</h2>
 
-      <h2 className="todo-title">Notes</h2>
-      <ul className="todo-list">
-        {state.todos.map((todo) => (
-          <li key={todo.id} className="todo-item">
-            {state.editingId === todo.id ? (
-              <>
-                <input
-                  type="text"
-                  value={state.editingValue}
-                  onChange={handleEditingChange}
-                  className="todo-edit-input"
-                />
-                <button onClick={() => handleEditSubmit(todo.id)} className="todo-save-button">Save</button>
-              </>
-            ) : (
-              <>
-                {todo.text}
-                <button onClick={() => handleEdit(todo.id)} className="todo-edit-button">Edit</button>
-                <button onClick={() => handleRemove(todo.id)} className="todo-remove-button">Remove</button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+			<ul className="todo-list">
+				{allTodos.map((todo) => (
+					<li key={todo.note_id} className="todo-item">
+						{editingNoteId === todo.note_id ? (
+							<div>
+								<input
+									type="text"
+									value={updateNote}
+									onChange={(e) => setUpdatednote(e.target.value)}
+									className="todo-edit-input"
+								/>
+								<button
+									onClick={() => handleUpdate(todo.note_id)}
+									className="todo-save-button"
+								>
+									Save
+								</button>
+							</div>
+						) : (
+							<>
+								<span className="text">{todo.notes}</span>
+								<span className="note-btn">
+									<button
+										onClick={() => handleEdit(todo.note_id, todo.notes)}
+										className="todo-edit-button"
+									>
+										Edit
+									</button>
+									<button
+										onClick={() => handleRemove(todo.note_id)}
+										className="todo-remove-button"
+									>
+										Remove
+									</button>
+								</span>
+							</>
+						)}
+					</li>
+				))}
+			</ul>
+		</div>
+	);
 }
 
 export default ToDoForm;

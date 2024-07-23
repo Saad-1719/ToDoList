@@ -68,5 +68,12 @@ body{
 }
 
 .todo-item button {
+  flex-grow: 1;
+  /* position: relative; */
+  /* right: %; */
   margin-left: 10px;
+}
+
+.text{
+  flex: 1;
 }
