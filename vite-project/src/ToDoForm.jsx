@@ -5,49 +5,90 @@ import {
 	getAllTodos,
 	updateTodo,
 } from "./lib/todo.controller";
+import { useNavigate } from "react-router-dom";
+import { isValidUserId } from "./lib/user.controller";
 
 function ToDoForm() {
 	const [allTodos, setAllTodos] = useState([]);
 	const [inputValue, setInputValue] = useState("");
 	const [updateNote, setUpdatednote] = useState("");
 	const [editingNoteId, setEditingNoteId] = useState(null);
-
+	const [isUserValid, setUserValid] = useState(false);
+	const [message, setMessage] = useState("");
+	const user_id = localStorage.getItem("user_id");
+	const navigate = useNavigate();
 	const handleAdd = async () => {
-		await addTodo(inputValue);
-		await loadAllTodos();
-		setInputValue("");
+		if (inputValue.length === 0 || inputValue.trim().length === 0) {
+			setMessage("Empty Field");
+		} else {
+			await addTodo(inputValue, user_id);
+			await loadAllTodos();
+			setInputValue("");
+		}
 	};
 
 	const handleRemove = async (id) => {
-		await deleteTodo(id);
+		await deleteTodo(id, user_id);
 		await loadAllTodos();
 	};
 
 	async function loadAllTodos() {
-		const todos = await getAllTodos();
+		const todos = await getAllTodos(user_id);
 		if (todos) {
 			setAllTodos(todos);
+			if (todos.length === 0) {
+				setMessage("Add todo's to your list ; )");
+			} else {
+				setMessage("");
+			}
+		} else {
+			setMessage("Add todo's to your list ; )");
+			// setMessage("Error Fetching Todo")
+			setAllTodos([]);
 		}
 	}
+
 	async function handleEdit(id, body) {
 		setEditingNoteId(id);
 		setUpdatednote(body);
 	}
 
 	const handleUpdate = async (id) => {
-		await updateTodo(id, updateNote);
+		await updateTodo(id, updateNote, user_id);
 		await loadAllTodos();
 		setEditingNoteId(null);
 		setUpdatednote("");
 	};
 
 	useEffect(() => {
-		loadAllTodos();
+		(async function () {
+			const result = await isValidUserId(user_id);
+			if (result.userExists === true) {
+				setUserValid(true);
+			}
+		})();
 	}, []);
+
+	useEffect(() => {
+		if (isUserValid) {
+			loadAllTodos();
+		}
+	}, [isUserValid]);
+
+	if (!isUserValid) {
+		return <></>;
+	}
+
+	const handleLogout = () => {
+		localStorage.removeItem("user_id");
+		setUserValid(false);
+		navigate("/");
+	};
 
 	return (
 		<div className="todo-container">
 			<h1>To-Do Guru</h1>
+
 			<input
 				type="text"
 				value={inputValue}
@@ -56,10 +97,14 @@ function ToDoForm() {
 				className="todo-input"
 			/>
 			<button onClick={handleAdd} className="todo-button">
-				Submit
+				Add Note
+      </button>
+      <button onClick={handleLogout} className="logout-button">
+				Logout
 			</button>
 
 			<h2 className="todo-title">Notes</h2>
+			{message && <span className="todo-note">{message}</span>}
 
 			<ul className="todo-list">
 				{allTodos.map((todo) => (
@@ -77,7 +122,8 @@ function ToDoForm() {
 									className="todo-save-button"
 								>
 									Save
-								</button>
+                </button>
+                
 							</div>
 						) : (
 							<>
@@ -93,7 +139,7 @@ function ToDoForm() {
 										onClick={() => handleRemove(todo.note_id)}
 										className="todo-remove-button"
 									>
-										Remove
+										Mark Completed
 									</button>
 								</span>
 							</>
